@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import cv2
+import torchvision
 from torchvision import transforms
 import random
 from PIL import Image
@@ -24,8 +25,8 @@ class CrowdDataset(torch.utils.data.Dataset):
         img_transform: transforms on image.
         dmap_transform: transforms on densitymap.
         '''
-        self.img_path = os.path.join(root, phase+'_data/images')
-        self.dmap_path = os.path.join(root, phase+'_data/densitymaps')
+        self.img_path = root[0]
+        self.dmap_path = root[2]
         self.data_files = [filename for filename in os.listdir(self.img_path)
                            if os.path.isfile(os.path.join(self.img_path, filename))]
         self.main_transform = main_transform
@@ -59,7 +60,7 @@ class CrowdDataset(torch.utils.data.Dataset):
         dmap = Image.fromarray(dmap)
         return img, dmap
 
-def create_train_dataloader(root, use_flip, batch_size):
+def create_train_dataloader(dataset_path, use_flip, batch_size):
     '''
     Create train dataloader.
     root: the dataset root.
@@ -69,12 +70,21 @@ def create_train_dataloader(root, use_flip, batch_size):
     main_trans_list = []
     if use_flip:
         main_trans_list.append(RandomHorizontalFlip())
+    """
+                   수정사항 -> Resize issue 있습니다.
+                   """
+    main_trans_list.append(image_rescale_by_ratio(1 / 4))
+    """
+               수정사항 -> Resize issue 있습니다.
+           """
     main_trans_list.append(PairedCrop())
+
+
     main_trans = Compose(main_trans_list)
     img_trans = Compose([ToTensor(), Normalize(mean=[0.5,0.5,0.5],std=[0.225,0.225,0.225])])
     dmap_trans = ToTensor()
-    dataset = CrowdDataset(root=root, phase='train', main_transform=main_trans, 
-                    img_transform=img_trans,dmap_transform=dmap_trans)
+    dataset = CrowdDataset(root=dataset_path, phase='train', main_transform=main_trans,
+                    img_transform=img_trans, dmap_transform=dmap_trans)
     dataloader = torch.utils.data.DataLoader(dataset,batch_size=batch_size,shuffle=True)
     return dataloader
 
@@ -84,7 +94,15 @@ def create_test_dataloader(root):
     root: the dataset root.
     '''
     main_trans_list = []
+    """
+               수정사항 -> Resize issue 있습니다.
+               """
+    main_trans_list.append(image_rescale_by_ratio(1 / 4))
+    """
+               수정사항 -> Resize issue 있습니다.
+           """
     main_trans_list.append(PairedCrop())
+
     main_trans = Compose(main_trans_list)
     img_trans = Compose([ToTensor(), Normalize(mean=[0.5,0.5,0.5],std=[0.225,0.225,0.225])])
     dmap_trans = ToTensor()
@@ -96,6 +114,28 @@ def create_test_dataloader(root):
 #----------------------------------#
 #          Transform code          #
 #----------------------------------#
+
+class image_rescale_by_ratio(object):
+    def __init__(self,ratio):
+        self.ratio = ratio
+    '''
+    Random horizontal flip.
+    prob = 0.5
+    '''
+    def __call__(self, img_and_dmap):
+        '''
+        img: PIL.Image
+        dmap: PIL.Image
+        '''
+        img, dmap = img_and_dmap
+
+        basewidth = int(img.width/4)
+        wpercent = (basewidth / float(img.size[0]))
+        hsize = int((float(img.size[1])*float(wpercent)))
+        img = img.resize((basewidth,hsize), Image.ANTIALIAS)
+        dmap = dmap.resize((basewidth,hsize), Image.ANTIALIAS)
+        return (img,dmap)
+
 class RandomHorizontalFlip(object):
     '''
     Random horizontal flip.
