@@ -1,13 +1,30 @@
+import argparse
+
 import torch
 import matplotlib.pyplot as plt
 import matplotlib.cm as CM
 from tqdm import tqdm
 
-from csrnet import CSRNet
-from my_dataset import CrowdDataset
+from config import Config
+from model import CSRNet
+from dataset import create_train_dataloader, create_test_dataloader, CrowdDataset
+from utils import denormalize
+
+parser = argparse.ArgumentParser(description="generate density map for crane")
 
 
-def cal_mae(img_root,gt_dmap_root,model_param_path):
+#train datasets
+parser.add_argument("--train_image_root",type=str,help="image data root")
+parser.add_argument("--train_image_gt_root",type=str,help="ground truth root")
+parser.add_argument("--train_image_density_root",type=str,help="density map root.")
+# test datasets
+parser.add_argument("--test_image_root",type=str,help="image data root")
+parser.add_argument("--test_image_gt_root",type=str,help="ground truth root")
+parser.add_argument("--test_image_density_root",type=str,help="density map root.")
+
+
+
+def cal_mae(img_root,model_param_path):
     '''
     Calculate the MAE of the test data.
     img_root: the root of test image data.
@@ -18,22 +35,21 @@ def cal_mae(img_root,gt_dmap_root,model_param_path):
     model=CSRNet()
     model.load_state_dict(torch.load(model_param_path))
     model.to(device)
-    dataset=CrowdDataset(img_root,gt_dmap_root,8)
+    dataset=create_test_dataloader(img_root)
     dataloader=torch.utils.data.DataLoader(dataset,batch_size=1,shuffle=False)
     model.eval()
     mae=0
     with torch.no_grad():
-        for i,(img,gt_dmap) in enumerate(tqdm(dataloader)):
-            img=img.to(device)
-            gt_dmap=gt_dmap.to(device)
+        for i, data in enumerate(tqdm(dataloader)):
+            image = data['image'].cuda()
+            gt_densitymap = data['densitymap'].cuda()
             # forward propagation
-            et_dmap=model(img)
-            mae+=abs(et_dmap.data.sum()-gt_dmap.data.sum()).item()
-            del img,gt_dmap,et_dmap
-
+            et_dmap=model(image)
+            mae+=abs(et_dmap.data.sum()-gt_densitymap.data.sum()).item()
+            del image,gt_densitymap,et_dmap
     print("model_param_path:"+model_param_path+" mae:"+str(mae/len(dataloader)))
 
-def estimate_density_map(img_root,gt_dmap_root,model_param_path,index):
+def estimate_density_map(img_root,model_param_path,index):
     '''
     Show one estimated density-map.
     img_root: the root of test image data.
@@ -44,7 +60,7 @@ def estimate_density_map(img_root,gt_dmap_root,model_param_path,index):
     device=torch.device("cuda")
     model=CSRNet().to(device)
     model.load_state_dict(torch.load(model_param_path))
-    dataset=CrowdDataset(img_root,gt_dmap_root,8)
+    dataset=CrowdDataset(img_root)
     dataloader=torch.utils.data.DataLoader(dataset,batch_size=1,shuffle=False)
     model.eval()
     for i,(img,gt_dmap) in enumerate(dataloader):
@@ -60,9 +76,16 @@ def estimate_density_map(img_root,gt_dmap_root,model_param_path,index):
 
 
 if __name__=="__main__":
+    args = parser.parse_args()
+
     torch.backends.cudnn.enabled=False
-    img_root='./data/Shanghai_part_A/test_data/images'
-    gt_dmap_root='./data/Shanghai_part_A/test_data/ground_truth'
-    model_param_path='./checkpoints/epoch_124.pth'
-    cal_mae(img_root,gt_dmap_root,model_param_path)
+
+    test_dataset_root = [
+        args.test_image_root,
+        args.test_image_gt_root,
+        args.test_image_density_root
+    ]
+
+    model_param_path='./checkpoints/346.pth'
+    cal_mae(test_dataset_root,model_param_path)
     # estimate_density_map(img_root,gt_dmap_root,model_param_path,3) 

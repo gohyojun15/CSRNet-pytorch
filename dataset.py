@@ -128,7 +128,6 @@ class image_rescale_by_ratio(object):
         dmap: PIL.Image
         '''
         img, dmap = img_and_dmap
-
         basewidth = int(img.width/4)
         wpercent = (basewidth / float(img.size[0]))
         hsize = int((float(img.size[1])*float(wpercent)))

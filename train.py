@@ -60,7 +60,7 @@ if __name__=="__main__":
         epoch_loss = 0.0
         for i, data in enumerate(tqdm(train_dataloader)):
             image = data['image'].to(cfg.device)
-            gt_densitymap = data['densitymap'].to(cfg.device)
+            gt_densitymap = data['densitymap'].to(cfg.device) * 16# todo 1/4 rescale effect때문에
             et_densitymap = model(image)                        # forward propagation
             loss = criterion(et_densitymap,gt_densitymap)       # calculate loss
             epoch_loss += loss.item()
@@ -73,7 +73,7 @@ if __name__=="__main__":
             epoch_mae = 0.0
             for i, data in enumerate(tqdm(test_dataloader)):
                 image = data['image'].to(cfg.device)
-                gt_densitymap = data['densitymap'].to(cfg.device)
+                gt_densitymap = data['densitymap'].to(cfg.device) * 16 # todo 1/4 rescale effect때문에
                 et_densitymap = model(image).detach()           # forward propagation
                 mae = abs(et_densitymap.data.sum()-gt_densitymap.data.sum())
                 epoch_mae += mae.item()
@@ -84,7 +84,8 @@ if __name__=="__main__":
             print('Epoch ', epoch, ' MAE: ', epoch_mae, ' Min MAE: ', min_mae, ' Min Epoch: ', min_mae_epoch)   # print information
             cfg.writer.add_scalar('Val_MAE', epoch_mae, epoch)
             cfg.writer.add_image(str(epoch)+'/Image', denormalize(image[0].cpu()))
-            cfg.writer.add_image(str(epoch)+'/Estimate density count:'+ str('%.2f'%(et_densitymap[0].cpu().sum())), et_densitymap[0]/torch.max(et_densitymap[0]))
+
+            cfg.writer.add_image(str(epoch)+'/Estimate density count:'+ str('%.2f'%(et_densitymap[0].cpu().sum())),torch.clamp(et_densitymap[0] / torch.max(et_densitymap[0]),0,1))
             cfg.writer.add_image(str(epoch)+'/Ground Truth count:'+ str('%.2f'%(gt_densitymap[0].cpu().sum())), gt_densitymap[0]/torch.max(gt_densitymap[0]))
             
 # %%
