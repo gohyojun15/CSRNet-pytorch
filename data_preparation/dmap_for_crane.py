@@ -7,9 +7,11 @@ from scipy.ndimage.filters import gaussian_filter
 import numpy as np
 
 from tqdm import tqdm
-
-
-
+"""
+Density map input out에 대한 입력 출력 간의 관계
+input : main argument in this file
+output: denstiy map 
+"""
 
 parser = argparse.ArgumentParser(description="generate density map for crane")
 # image root
@@ -77,10 +79,11 @@ if __name__ == '__main__':
         image = plt.imread(image_path)
         mat = loadmat(mat_path)
 
-        #densitymap root
+        # todo 이거 연관성 써놔야함
+        # todo 모든 클래스에대해서 어떻게 저장할지도 생각해놔야함
+        # densitymap root
         density_path = args.density_map_root + "/" + image_file
-        mat_path = mat_path[0:-3] + "npy"
-
+        density_path = density_path[0:-3] + "npy"
         ################
         """
         matlab file debugging.
@@ -101,5 +104,5 @@ if __name__ == '__main__':
         ################
         points = mat['head_class0'][0][0][0][0][0]
         densitymap = generate_fixed_kernel_densitymap(image, points, sigma=15)
-        np.save()
+        np.save(density_path,densitymap)
 
