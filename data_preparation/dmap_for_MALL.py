@@ -1,4 +1,6 @@
 #%%
+import argparse
+
 import numpy as np
 from scipy.io import loadmat
 from scipy.ndimage.filters import gaussian_filter
@@ -38,6 +40,10 @@ def generate_perspective_densitymap(image, points, p_map):
 
 
 if __name__ == '__main__':
+    # parser = argparse.ArgumentParser(description="generate perspective density map for crane crowd counting")
+    # parser.add_argument("data_root")
+
+
     mat = loadmat('perspective_roi.mat')
     mask = mat['roi']['mask'][0][0]     # mask
     p_map = mat['pMapN']                # perspective map
