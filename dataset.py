@@ -141,6 +141,7 @@ class RandomHorizontalFlip(object):
     Random horizontal flip.
     prob = 0.5
     '''
+
     def __call__(self, img_and_dmap):
         '''
         img: PIL.Image
