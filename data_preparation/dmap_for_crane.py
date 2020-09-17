@@ -72,13 +72,15 @@ if __name__ == '__main__':
     index = 0
     for image_file in tqdm(image_file_list):
         image_path = args.image_root+"/" + image_file
+
+        if not os.path.isfile(image_path):
+            continue
+
         # FIXME
         # math file rule이 같은 이름에 .jpg를 .mat 로
         mat_path = args.ground_truth_root+ "/" + image_file
         mat_path = mat_path[0:-3] + "mat"
         image = plt.imread(image_path)
-        mat = loadmat(mat_path)
-
         # todo 이거 연관성 써놔야함
         # todo 모든 클래스에대해서 어떻게 저장할지도 생각해놔야함
         # densitymap root
@@ -102,7 +104,18 @@ if __name__ == '__main__':
         body_class9
         """
         ################
-        points = mat['head_class0'][0][0][0][0][0]
+
+
+        mat = loadmat(mat_path)
+        points = mat["class0"][0][0][0][0][0]
+
+
+
+
+
+
+
+        # points = mat['head_class0'][0][0][0][0][0]
         densitymap = generate_fixed_kernel_densitymap(image, points, sigma=15)
         np.save(density_path,densitymap)
 
